@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Apr 26 23:03:49 2022
-
-@author: TD
-"""
-
 # Variational Auto Encoder (VAE) for 2D datasets
 
 This project will consider the simple problem of a polynomial curve in R^2.  
