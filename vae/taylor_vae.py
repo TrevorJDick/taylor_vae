@@ -35,7 +35,7 @@ class VAE:
     (nsamples, dim1, dim2)
     """
     
-    def __init__(self, save_dir, input_shape, latent_dim=2):
+    def __init__(self, input_shape, latent_dim=2, save_dir=None):
         # ex (npoints, ndims), or (xpixels, ypixels)
         self.input_shape = input_shape
         self.latent_dim = latent_dim
@@ -46,8 +46,9 @@ class VAE:
         # save directory for checkpoints and plots
         self.save_dir = save_dir
         
-        # create checkpoint and checkpoint manager
-        self.checkpoint, self.ckpt_manager = self.checkpoint_manager()
+        if self.save_dir is not None:
+            # create checkpoint and checkpoint manager
+            self.checkpoint, self.ckpt_manager = self.checkpoint_manager()
     
     
     @staticmethod
@@ -224,14 +225,16 @@ class VAE:
         return
     
     
-    def save_decoded_latent_vectors_plot(self, epoch, decoded_latent_vectors,
-                                         x_test,
-                                         epoch_loss=None, num_plots=None):
-        savefig_dir = (
-            f'{self.save_dir}/'
-            'plots/decoded_latent_vectors_test/images_by_epoch'
-        )
-        make_dirs_if_not_exist(directory=savefig_dir, path=None)
+    def plot_and_save_decoded_latent_vectors(self, epoch,
+                                             decoded_latent_vectors,
+                                             x_test,
+                                             epoch_loss=None, num_plots=None):
+        if self.save_dir is not None:
+            savefig_dir = (
+                f'{self.save_dir}/'
+                'plots/decoded_latent_vectors_test/images_by_epoch'
+            )
+            make_dirs_if_not_exist(directory=savefig_dir, path=None)
         
         epoch_loss_str = ''
         if epoch_loss is not None:
@@ -269,7 +272,8 @@ class VAE:
             f'epoch: {epoch}{epoch_loss_str}',
             y=0.93
         )
-        plt.savefig(f'{savefig_dir}/image_at_epoch_{epoch}.png')
+        if self.save_dir is not None:
+            plt.savefig(f'{savefig_dir}/image_at_epoch_{epoch}.png')
         plt.show()
         return
 
@@ -360,7 +364,8 @@ class VAE:
     
     
     def train(self, x_train, x_test=None, batch_size=32, epochs=10):
-        self.restore_checkpoint()
+        if self.save_dir is not None:
+            self.restore_checkpoint()
         
         batched_train = tf.data.Dataset.from_tensor_slices(
             x_train
@@ -412,7 +417,7 @@ class VAE:
                 )
                 
                 # plot decoded test vectors
-                self.save_decoded_latent_vectors_plot(
+                self.plot_and_save_decoded_latent_vectors(
                     epoch,
                     decoded_latent_vectors,
                     test_batch_plot,
@@ -420,14 +425,16 @@ class VAE:
                 )
             
             # Save the model every 5 epochs
-            self.save_checkpoint(epoch, epoch_save_freq=5)
+            if self.save_dir is not None:
+                self.save_checkpoint(epoch, epoch_save_freq=5)
         
             print(
                 f'{end_time - start_time} -- time elapse for {epoch} epoch.'
             )
         
         # save again after last epoch
-        self.save_checkpoint(epoch)
+        if self.save_dir is not None:
+            self.save_checkpoint(epoch)
         return
 
 
@@ -481,12 +488,7 @@ def make_poly_curves_from_coefficients(coeffs_matrix, num_points=None):
     return bounding_region, F
 
 
-
-### generate data
-seed = 37
-
-
-def gen_random_coeffs_matrix():
+def gen_random_coeffs_matrix(seed):
     p = 5 # taylor series highest degree polynomial minus 1
     N = 1500 # num train samples
     coeffs_matrix = np.random.default_rng(
@@ -520,7 +522,7 @@ def gen_legendre_coeffs(n):
 
 
 def gen_legendre_coeffs_matrix(highest_degree=100):
-    #need to pad each output of coeffs with highest degree in order to stack
+    # need to pad each output of coeffs with highest degree in order to stack
     coeffs_by_deg = []
     for i in range(highest_degree + 1):
         c = np.pad(gen_legendre_coeffs(i), (0, highest_degree - i))
@@ -529,7 +531,9 @@ def gen_legendre_coeffs_matrix(highest_degree=100):
     return coeffs_matrix
 
 
-# coeffs_matrix = gen_random_coeffs_matrix()
+"""
+seed = 37
+# coeffs_matrix = gen_random_coeffs_matrix(seed)
 # coeffs_matrix = np.diag(np.ones(100))
 coeffs_matrix = gen_legendre_coeffs_matrix(highest_degree=100)
 
@@ -566,18 +570,18 @@ x_train = F[train_idx].astype('float32')
 x_test = F[test_idx].astype('float32')
 
 
-"""
+
 save_dir = (
     'C:/Users/the_s/Documents/python_projects/tensorflow_projects/taylor_vae'
 )
 input_shape = x_train[0, :, :].shape
 
-vae_obj = VAE(save_dir, input_shape, latent_dim=2)
+vae_obj = VAE(input_shape, latent_dim=2, save_dir=None)
 
 vae_obj.train(
       x_train,
       x_test=x_test,
-      epochs=50
+      epochs=10
 )
 
 
